@@ -6,11 +6,7 @@ import { getColumnNumber } from "./utils.js";
 
 // Default suggestion values used to seed per-row suggestions in preferences
 const DEFAULT_SUGGESTIONS = [
-  "present",
-  "absent",
-  "leave",
-  "sick",
-  "working from home",
+  "8",
   "on vacation",
 ];
 
