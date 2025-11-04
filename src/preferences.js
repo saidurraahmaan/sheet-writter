@@ -5,10 +5,7 @@ import inquirer from "inquirer";
 import { getColumnNumber } from "./utils.js";
 
 // Default suggestion values used to seed per-row suggestions in preferences
-const DEFAULT_SUGGESTIONS = [
-  "8",
-  "on vacation",
-];
+const DEFAULT_SUGGESTIONS = ["8", "PTO"];
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -181,7 +178,33 @@ export const loadPreferences = async () => {
     }
   };
 
+  // Helper to determine if we seeded missing suggestions
+  const weSeededMissingSuggestions = (updatedPrefs, originalPrefs) => {
+    if (!updatedPrefs.suggestions || !originalPrefs || !originalPrefs.suggestions) {
+      return false;
+    }
+    const updatedKeys = Object.keys(updatedPrefs.suggestions);
+    const originalKeys = Object.keys(originalPrefs.suggestions);
+    
+    // Check if any keys were added or any arrays went from empty/non-array to populated
+    for (const key of updatedKeys) {
+      if (!originalKeys.includes(key)) {
+        return true;
+      }
+      const wasEmptyOrInvalid = !Array.isArray(originalPrefs.suggestions[key]) || originalPrefs.suggestions[key].length === 0;
+      const nowHasData = Array.isArray(updatedPrefs.suggestions[key]) && updatedPrefs.suggestions[key].length > 0;
+      if (wasEmptyOrInvalid && nowHasData) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   ensureSuggestionsForRows(updated);
+
+  // Track if we added any missing suggestions (needed for existing preference files)
+  const hadSuggestions = original && original.suggestions;
+  const weAddedSuggestions = !hadSuggestions || weSeededMissingSuggestions(updated, original);
 
   // Only save when the user actually provided missing values
   if (wasAsked) {
@@ -190,11 +213,34 @@ export const loadPreferences = async () => {
   }
 
   // If file didn't exist we should still save defaults (so there's a preferences.json)
-  if (!fileExists) {
+  // Or if we added suggestions to an existing file, save those too
+  if (!fileExists || weAddedSuggestions) {
     await savePreferences(updated);
   }
 
   return updated;
+};
+
+// Helper to determine if we seeded missing suggestions
+const weSeededMissingSuggestions = (updatedPrefs, originalPrefs) => {
+  if (!updatedPrefs.suggestions || !originalPrefs || !originalPrefs.suggestions) {
+    return false;
+  }
+  const updatedKeys = Object.keys(updatedPrefs.suggestions);
+  const originalKeys = Object.keys(originalPrefs.suggestions);
+  
+  // Check if any keys were added or any arrays went from empty/non-array to populated
+  for (const key of updatedKeys) {
+    if (!originalKeys.includes(key)) {
+      return true;
+    }
+    const wasEmptyOrInvalid = !Array.isArray(originalPrefs.suggestions[key]) || originalPrefs.suggestions[key].length === 0;
+    const nowHasData = Array.isArray(updatedPrefs.suggestions[key]) && updatedPrefs.suggestions[key].length > 0;
+    if (wasEmptyOrInvalid && nowHasData) {
+      return true;
+    }
+  }
+  return false;
 };
 
 // Save preferences to file

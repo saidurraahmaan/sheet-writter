@@ -11,37 +11,57 @@ const DEFAULT_SUGGESTIONS = [
   "on vacation",
 ];
 
-// Keep track of recent values per row (in memory during the session)
-const recentValues = new Map();
+// Function to get data input for a row with suggestions.
+// Suggestions are read from preferences.suggestions[row] (persisted) or DEFAULT_SUGGESTIONS as fallback.
+const getRowData = async (row, preferences) => {
+  const key = String(row);
+  const suggestions = (preferences.suggestions && Array.isArray(preferences.suggestions[key]))
+    ? preferences.suggestions[key]
+    : DEFAULT_SUGGESTIONS;
 
-// Helper to update recent values after a new entry
-const updateRecentValues = (row, value) => {
-  if (!value || value.trim() === "" || DEFAULT_SUGGESTIONS.includes(value))
-    return;
+  // Add a custom value option at the end
+  const allChoices = [...suggestions, new inquirer.Separator(), "(type custom value)"];
 
-  const current = recentValues.get(row) || [];
-  const updated = [value, ...current.filter((v) => v !== value)].slice(0, 5);
-  recentValues.set(row, updated);
-};
+  // First, let user select a suggestion
+  const { choice } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "choice",
+      message: `Select a suggestion for row ${row}:`,
+      choices: allChoices,
+      loop: false,
+    },
+  ]);
 
-// Function to get data input for a row with suggestions
-const getRowData = async (row) => {
-  const recents = recentValues.get(row) || [];
-  const suggestions = [...new Set([...recents, ...DEFAULT_SUGGESTIONS])];
-
+  // Now prompt for the actual value (pre-filled with the selected suggestion)
   const { value } = await inquirer.prompt([
     {
       type: "input",
       name: "value",
-      message: `Enter data for row ${row} (use ↑↓ to see suggestions):`,
+      message: `Edit and confirm value for row ${row}:`,
+      default: choice === "(type custom value)" ? "" : choice,
       validate: (input) => input.trim() !== "" || "Value cannot be empty",
-      suggestOnly: true,
-      choices: suggestions,
     },
   ]);
 
-  updateRecentValues(row, value);
-  return value;
+  const finalValue = value;
+
+  // Only save the value if this row has no suggestions yet in preferences.json
+  // Check if suggestions are empty or are exactly the defaults
+  const isDefault = JSON.stringify(suggestions) === JSON.stringify(DEFAULT_SUGGESTIONS);
+
+  if (isDefault) {
+    try {
+      const currentPrefs = await loadPreferences();
+      const s = currentPrefs.suggestions && typeof currentPrefs.suggestions === "object" ? { ...currentPrefs.suggestions } : {};
+      s[key] = [finalValue];
+      await updatePreferences({ suggestions: s });
+    } catch (e) {
+      // If persisting fails, ignore silently
+    }
+  }
+
+  return finalValue;
 };
 
 // Function to setup preferences
@@ -95,7 +115,7 @@ export const getUserInput = async () => {
   // If there is only one row, ask a single data prompt
   if (prefRows.length === 1) {
     const row = prefRows[0];
-    const value = await getRowData(row);
+    const value = await getRowData(row, preferences);
 
     return {
       date: preferences.userRow,
@@ -107,7 +127,7 @@ export const getUserInput = async () => {
   // Multiple rows: get data for each row with suggestions
   const values = [];
   for (const row of prefRows) {
-    const value = await getRowData(row);
+    const value = await getRowData(row, preferences);
     values.push(value);
   }
 
