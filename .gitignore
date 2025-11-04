@@ -1,0 +1,6 @@
+.env
+preferences.json
+node_modules/
+package-lock.json
+credentials.json
+.env.example

@@ -1,0 +1,19 @@
+{
+  "name": "sheet-writter",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "saidur",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "google-auth-library": "^10.5.0",
+    "googleapis": "^164.1.0",
+    "inquirer": "^12.10.0"
+  }
+}
