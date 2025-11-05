@@ -30,13 +30,7 @@ export const appendToSheet = async (auth, data) => {
   // Convert final column number to letter (1=A, 2=B, etc.)
   const columnLetter = getColumnLetter(columnNumber);
 
-  // Use the user's row number from data.date
-  const rowNumber = parseInt(data.date);
-
-    // Create the cell reference (e.g., B15 for column 2, date 15)
-    const cellReference = `${columnLetter}${rowNumber}`;
-
-    // If userRow is an array, write to multiple rows. Otherwise update a single cell.
+  // If userRow is an array, write to multiple rows. Otherwise update a single cell.
     const userRows = Array.isArray(data.date)
       ? data.date.map((r) => parseInt(r, 10))
       : [parseInt(data.date, 10)];
@@ -65,7 +59,13 @@ export const appendToSheet = async (auth, data) => {
         },
       });
 
-      console.log(`Data successfully inserted into cell ${singleRange}!`);
+      console.log('\n' + '='.repeat(60));
+      console.log('✓ SUCCESS!');
+      console.log('='.repeat(60));
+      console.log(`📊 Sheet: ${sheet.properties.title}`);
+      console.log(`📍 Cell: ${columnLetter}${userRows[0]}`);
+      console.log(`📝 Value: ${rowValues[0]}`);
+      console.log('='.repeat(60) + '\n');
       return updateResponse;
     }
 
@@ -83,8 +83,16 @@ export const appendToSheet = async (auth, data) => {
       },
     });
 
-    const writtenRanges = dataEntries.map((d) => d.range).join(', ');
-    console.log(`Data successfully inserted into cells: ${writtenRanges}`);
+    console.log('\n' + '='.repeat(60));
+    console.log('✓ SUCCESS!');
+    console.log('='.repeat(60));
+    console.log(`📊 Sheet: ${sheet.properties.title}`);
+    console.log(`📍 Cells Updated: ${userRows.length}`);
+    dataEntries.forEach((entry, idx) => {
+      const cellRef = entry.range.split('!')[1];
+      console.log(`   ${idx + 1}. ${cellRef} = ${rowValues[idx]}`);
+    });
+    console.log('='.repeat(60) + '\n');
     return batchResponse;
   } catch (error) {
     console.error("Error inserting data:", error.message);
