@@ -19,42 +19,87 @@ const getRowData = async (row, preferences) => {
     ? preferences.suggestions[key]
     : DEFAULT_SUGGESTIONS;
 
-  // Add a custom value option at the end
-  const allChoices = [...suggestions, new inquirer.Separator(), "(type custom value)"];
+  let currentValue = "";
 
-  // First, let user select a suggestion
-  const { choice } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "choice",
-      message: `Select a suggestion for row ${row}:`,
-      choices: allChoices,
-      loop: false,
-    },
-  ]);
+  // First value is required
+  while (true) {
+    // Add a custom value option and optionally a done option
+    const allChoices = [
+      ...suggestions,
+      new inquirer.Separator(),
+      "(type custom value)",
+    ];
 
-  // Now prompt for the actual value (pre-filled with the selected suggestion)
-  const { value } = await inquirer.prompt([
-    {
-      type: "input",
-      name: "value",
-      message: `Edit and confirm value for row ${row}:`,
-      default: choice === "(type custom value)" ? "" : choice,
-      validate: (input) => input.trim() !== "" || "Value cannot be empty",
-    },
-  ]);
+    // Add done option only if at least one value has been added
+    if (currentValue.length > 0) {
+      allChoices.push("(done - finish adding)");
+    }
 
-  const finalValue = value;
+    // First, let user select a suggestion
+    const { choice } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "choice",
+        message: `Select a suggestion for row ${row}${currentValue ? ` [Current: ${currentValue}]` : ''}:`,
+        choices: allChoices,
+        loop: false,
+      },
+    ]);
+
+    // Check if user wants to finish
+    if (choice === "(done - finish adding)") {
+      break;
+    }
+
+    // Determine the default value for the input prompt
+    let defaultValue;
+    if (choice === "(type custom value)") {
+      defaultValue = currentValue;
+    } else {
+      // If there's already a value, append with comma
+      defaultValue = currentValue ? `${currentValue}, ${choice}` : choice;
+    }
+
+    // Now prompt for the actual value (pre-filled with the accumulated value)
+    const { value } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "value",
+        message: `Edit and confirm value for row ${row}:`,
+        default: defaultValue,
+        validate: (input) => input.trim() !== "" || "Value cannot be empty",
+      },
+    ]);
+
+    currentValue = value;
+
+    // Ask if user wants to add more
+    const { addMore } = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "addMore",
+        message: "Add another value from suggestions?",
+        default: false,
+      },
+    ]);
+
+    if (!addMore) {
+      break;
+    }
+  }
+
+  const finalValue = currentValue;
 
   // Only save the value if this row has no suggestions yet in preferences.json
   // Check if suggestions are empty or are exactly the defaults
   const isDefault = JSON.stringify(suggestions) === JSON.stringify(DEFAULT_SUGGESTIONS);
 
-  if (isDefault) {
+  if (isDefault && finalValue) {
     try {
       const currentPrefs = await loadPreferences();
       const s = currentPrefs.suggestions && typeof currentPrefs.suggestions === "object" ? { ...currentPrefs.suggestions } : {};
-      s[key] = [finalValue];
+      // Split the final value by comma to save as array of suggestions
+      s[key] = finalValue.split(',').map(v => v.trim()).filter(v => v);
       await updatePreferences({ suggestions: s });
     } catch (e) {
       // If persisting fails, ignore silently
@@ -91,12 +136,13 @@ export const getUserInput = async () => {
   const preferences = await loadPreferences();
 
   // First ask for the date only
+  const todayDate = new Date().getDate();
   const dateQuestion = [
     {
       type: "input",
       name: "date",
-      message: "Enter date (1-31):",
-      default: new Date().getDate().toString(),
+      message: `Enter date (1-31) [Today: ${todayDate}]:`,
+      default: todayDate.toString(),
       validate: (input) => {
         const num = parseInt(input);
         return num >= 1 && num <= 31;
