@@ -164,6 +164,12 @@ export const loadPreferences = async () => {
     } else {
       prefsObj.suggestions = normalizeSuggestions(prefsObj.suggestions);
     }
+
+    // Ensure allowAddMultipleSuggestions object exists
+    if (!prefsObj.allowAddMultipleSuggestions || typeof prefsObj.allowAddMultipleSuggestions !== "object") {
+      prefsObj.allowAddMultipleSuggestions = {};
+    }
+
     const rows = Array.isArray(prefsObj.userRow)
       ? prefsObj.userRow
       : [prefsObj.userRow];
@@ -175,17 +181,22 @@ export const loadPreferences = async () => {
       ) {
         prefsObj.suggestions[key] = DEFAULT_SUGGESTIONS.slice();
       }
+
+      // Set allowAddMultipleSuggestions to true by default for each row if not set
+      if (prefsObj.allowAddMultipleSuggestions[key] === undefined) {
+        prefsObj.allowAddMultipleSuggestions[key] = true;
+      }
     }
   };
 
-  // Helper to determine if we seeded missing suggestions
+  // Helper to determine if we seeded missing suggestions or allowMultipleSuggestions
   const weSeededMissingSuggestions = (updatedPrefs, originalPrefs) => {
     if (!updatedPrefs.suggestions || !originalPrefs || !originalPrefs.suggestions) {
       return false;
     }
     const updatedKeys = Object.keys(updatedPrefs.suggestions);
     const originalKeys = Object.keys(originalPrefs.suggestions);
-    
+
     // Check if any keys were added or any arrays went from empty/non-array to populated
     for (const key of updatedKeys) {
       if (!originalKeys.includes(key)) {
@@ -197,6 +208,23 @@ export const loadPreferences = async () => {
         return true;
       }
     }
+
+    // Check if allowAddMultipleSuggestions was added
+    if (updatedPrefs.allowAddMultipleSuggestions && typeof updatedPrefs.allowAddMultipleSuggestions === "object") {
+      // If original didn't have allowAddMultipleSuggestions, we added it
+      if (!originalPrefs.allowAddMultipleSuggestions || typeof originalPrefs.allowAddMultipleSuggestions !== "object") {
+        return true;
+      }
+      // Check if any new keys were added to allowAddMultipleSuggestions
+      const updatedAllowKeys = Object.keys(updatedPrefs.allowAddMultipleSuggestions);
+      const originalAllowKeys = Object.keys(originalPrefs.allowAddMultipleSuggestions);
+      for (const key of updatedAllowKeys) {
+        if (!originalAllowKeys.includes(key)) {
+          return true;
+        }
+      }
+    }
+
     return false;
   };
 
@@ -219,28 +247,6 @@ export const loadPreferences = async () => {
   }
 
   return updated;
-};
-
-// Helper to determine if we seeded missing suggestions
-const weSeededMissingSuggestions = (updatedPrefs, originalPrefs) => {
-  if (!updatedPrefs.suggestions || !originalPrefs || !originalPrefs.suggestions) {
-    return false;
-  }
-  const updatedKeys = Object.keys(updatedPrefs.suggestions);
-  const originalKeys = Object.keys(originalPrefs.suggestions);
-  
-  // Check if any keys were added or any arrays went from empty/non-array to populated
-  for (const key of updatedKeys) {
-    if (!originalKeys.includes(key)) {
-      return true;
-    }
-    const wasEmptyOrInvalid = !Array.isArray(originalPrefs.suggestions[key]) || originalPrefs.suggestions[key].length === 0;
-    const nowHasData = Array.isArray(updatedPrefs.suggestions[key]) && updatedPrefs.suggestions[key].length > 0;
-    if (wasEmptyOrInvalid && nowHasData) {
-      return true;
-    }
-  }
-  return false;
 };
 
 // Save preferences to file

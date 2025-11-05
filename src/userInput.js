@@ -19,6 +19,9 @@ const getRowData = async (row, preferences) => {
     ? preferences.suggestions[key]
     : DEFAULT_SUGGESTIONS;
 
+  // Check if multiple suggestions are allowed for this row (default: true)
+  const allowMultiple = preferences.allowAddMultipleSuggestions?.[key] !== false;
+
   let currentValue = "";
 
   // First value is required
@@ -72,6 +75,11 @@ const getRowData = async (row, preferences) => {
     ]);
 
     currentValue = value;
+
+    // If multiple suggestions are not allowed for this row, break after first value
+    if (!allowMultiple) {
+      break;
+    }
 
     // Ask if user wants to add more
     const { addMore } = await inquirer.prompt([
