@@ -221,28 +221,6 @@ export const loadPreferences = async () => {
   return updated;
 };
 
-// Helper to determine if we seeded missing suggestions
-const weSeededMissingSuggestions = (updatedPrefs, originalPrefs) => {
-  if (!updatedPrefs.suggestions || !originalPrefs || !originalPrefs.suggestions) {
-    return false;
-  }
-  const updatedKeys = Object.keys(updatedPrefs.suggestions);
-  const originalKeys = Object.keys(originalPrefs.suggestions);
-  
-  // Check if any keys were added or any arrays went from empty/non-array to populated
-  for (const key of updatedKeys) {
-    if (!originalKeys.includes(key)) {
-      return true;
-    }
-    const wasEmptyOrInvalid = !Array.isArray(originalPrefs.suggestions[key]) || originalPrefs.suggestions[key].length === 0;
-    const nowHasData = Array.isArray(updatedPrefs.suggestions[key]) && updatedPrefs.suggestions[key].length > 0;
-    if (wasEmptyOrInvalid && nowHasData) {
-      return true;
-    }
-  }
-  return false;
-};
-
 // Save preferences to file
 export const savePreferences = async (preferences) => {
   try {
