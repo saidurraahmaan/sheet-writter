@@ -18,7 +18,7 @@ Before running this application, you need:
 
 1. **Node.js** (v16 or higher)
 2. **A Google account** with access to Google Sheets
-3. **Google Sheets API credentials** (service account)
+3. **Google Sheets API credentials** (OAuth 2.0)
 
 ## Setup
 
@@ -28,9 +28,9 @@ Before running this application, you need:
 npm install
 ```
 
-### 2. Create Google Service Account Credentials
+### 2. Create OAuth 2.0 Credentials
 
-Follow these steps to get your credentials:
+Follow these steps to get your OAuth credentials:
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
@@ -38,35 +38,44 @@ Follow these steps to get your credentials:
    - Navigate to "APIs & Services" → "Library"
    - Search for "Google Sheets API"
    - Click "Enable"
-4. Create a service account:
+4. Configure the OAuth consent screen:
+   - Go to "APIs & Services" → "OAuth consent screen"
+   - Select "External" user type (unless you have a Google Workspace)
+   - Click "Create"
+   - Fill in the required fields:
+     - App name (e.g., "Sheet Writer")
+     - User support email (your email)
+     - Developer contact information (your email)
+   - Click "Save and Continue"
+   - On the Scopes page, click "Add or Remove Scopes"
+   - Add the scope: `https://www.googleapis.com/auth/spreadsheets`
+   - Click "Update" then "Save and Continue"
+   - Add your email as a test user
+   - Click "Save and Continue"
+5. Create OAuth 2.0 credentials:
    - Go to "APIs & Services" → "Credentials"
-   - Click "Create Credentials" → "Service account"
-   - Fill in the name (e.g., "sheet-writer-service")
-   - Click "Create and Continue"
-   - Skip role assignment (click "Continue")
-   - Click "Done"
-5. Create and download the key:
-   - Click on your newly created service account
-   - Go to the "Keys" tab
-   - Click "Add Key" → "Create new key"
-   - Select "JSON" format
-   - Click "Create" - this downloads the JSON file
+   - Click "Create Credentials" → "OAuth client ID"
+   - Select "Desktop app" as the application type
+   - Give it a name (e.g., "Sheet Writer Desktop")
+   - Click "Create"
+   - Click "Download JSON" on the popup
 6. **Important**: Rename the downloaded file to `credentials.json` and place it in the project root
 
-### 3. Share Your Google Sheet with the Service Account
+### 3. First-Time Authorization
 
-**⚠️ This step is crucial - the app will fail without it!**
+When you run the app for the first time:
 
-1. Open your Google Sheet in a browser
-2. Click the "Share" button (top right)
-3. Paste the service account email address from your `credentials.json` file:
-   - Open `credentials.json`
-   - Copy the value of the `client_email` field
-   - Example: `sheet-writer-service@your-project.iam.gserviceaccount.com`
-4. Set permission to "Editor"
-5. Click "Send"
+1. The app will display an authorization URL
+2. Open the URL in your browser
+3. Sign in with your Google account
+4. You may see "Access blocked" - click **"Advanced"** then **"Go to Sheet Writer (unsafe)"**
+5. Grant the requested permissions
+6. **Google will display an authorization code on the page**
+7. **Copy the authorization code** (not the URL, just the code)
+8. Paste it into the terminal when prompted
+9. Wait for the token exchange to complete (may take 10-30 seconds)
 
-Now the service account can read and write to your sheet!
+The token is saved to `token.json` and will be reused for subsequent runs, so you only need to authorize once.
 
 ### 4. Run the Application
 
@@ -74,7 +83,7 @@ Now the service account can read and write to your sheet!
 npm start
 ```
 
-### 5. First-Time Setup
+### 5. Configure Your Preferences
 
 On first run, the app will prompt you for:
 
@@ -142,7 +151,8 @@ sheet-writter/
 │   └── utils.js             # Helper utilities
 ├── index.js                 # Main application entry
 ├── preferences.json         # User preferences (auto-generated)
-├── credentials.json         # Service account credentials (you provide this)
+├── credentials.json         # OAuth 2.0 credentials (you provide this)
+├── token.json              # OAuth access token (auto-generated after first auth)
 └── README.md               # This file
 ```
 
@@ -154,12 +164,19 @@ sheet-writter/
 
 ### "Authentication failed"
 - Ensure `credentials.json` is in the project root
-- Verify the JSON file is valid
-- Check that the service account email is added as an editor to the sheet
+- Verify the JSON file is valid (should contain OAuth 2.0 client credentials, not service account)
+- Delete `token.json` and re-authorize if you're having authentication issues
 
 ### "The caller does not have permission"
-- Make sure you shared the sheet with the service account email from `credentials.json`
-- Confirm the service account has "Editor" permission
+- Make sure you're signed in with a Google account that has access to the sheet
+- Ensure the sheet exists and you have edit permissions
+- Try deleting `token.json` and re-authorizing with the correct Google account
+
+### "Token exchange times out"
+- The token exchange can take 10-30 seconds - please be patient
+- Check your internet connection
+- If it times out after 30 seconds, try again with a fresh authorization code
+- Make sure you're not behind a restrictive firewall that blocks Google OAuth endpoints
 
 ### Preferences not saving
 - Check that you have write permissions in the project directory
@@ -182,8 +199,10 @@ node index.js
 ## Security Notes
 
 - ✅ `credentials.json` is git-ignored (never commit to version control)
+- ✅ `token.json` is git-ignored (contains your OAuth access token)
 - ✅ `preferences.json` is git-ignored (contains your spreadsheet ID)
-- ✅ Service account principle of least privilege (only has access to sheets you explicitly share)
+- ✅ OAuth 2.0 provides secure user authentication with limited scope access
+- ✅ You only grant access to Google Sheets API, not full Google account access
 
 ## License
 

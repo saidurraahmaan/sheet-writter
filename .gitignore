@@ -3,4 +3,5 @@ preferences.json
 node_modules/
 package-lock.json
 credentials.json
+token.json
 .env.example
