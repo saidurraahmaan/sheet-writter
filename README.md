@@ -50,7 +50,9 @@ Follow these steps to get your OAuth credentials:
    - On the Scopes page, click "Add or Remove Scopes"
    - Add the scope: `https://www.googleapis.com/auth/spreadsheets`
    - Click "Update" then "Save and Continue"
-   - Add your email as a test user
+   - **Add test users**: Click "Add Users" and enter the email address(es) you'll use to log in to the app
+     - Add the Google account email that has access to your spreadsheet
+     - You must add this test user to be able to authorize the app
    - Click "Save and Continue"
 5. Create OAuth 2.0 credentials:
    - Go to "APIs & Services" → "Credentials"
