@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import { getAuthClient } from "./src/auth.js";
 import { getUserInput, setupPreferences } from "./src/userInput.js";
 import { appendToSheet } from "./src/sheetOperations.js";
-import { loadPreferences } from "./src/preferences.js";
+import { loadPreferences, updatePreferences } from "./src/preferences.js";
 
 // Main function
 const main = async () => {
@@ -25,6 +25,24 @@ const main = async () => {
       const userData = await getUserInput();
       await appendToSheet(auth, userData);
 
+      // Save the inserted values to preferences for next time
+      const rows = Array.isArray(preferences.userRow)
+        ? preferences.userRow
+        : [preferences.userRow];
+
+      const lastInsertedValues = { ...(preferences.lastInsertedValues || {}) };
+
+      // Map each row to its inserted value
+      rows.forEach((row, index) => {
+        const key = String(row);
+        lastInsertedValues[key] = userData.rowData[index];
+      });
+
+      await updatePreferences({ lastInsertedValues });
+
+      // Reload preferences to get the updated values
+      preferences = await loadPreferences();
+
       const { continue: wantsToContinue } = await inquirer.prompt([
         {
           type: "confirm",
@@ -33,7 +51,7 @@ const main = async () => {
           default: false,
         },
       ]);
-      
+
       shouldContinue = wantsToContinue;
     }
 

@@ -19,6 +19,13 @@ const defaultPreferences = {
   // startColumn is the column letter that represents day 1 (e.g. "A" or "C")
   // Set to null so the loader will prompt the user when it's not present in preferences.json
   startColumn: null,
+  // lastInsertedValues stores the last inserted values for each row
+  // Format: { "9": "present", "10": "working from home", ... }
+  lastInsertedValues: {},
+  // showLastInsertedValue controls whether to show the last inserted value option per row
+  // Format: { "9": true, "10": false, ... }
+  // Default: false for each row
+  showLastInsertedValue: {},
 };
 
 const PREFERENCES_PATH = () => join(__dirname, "..", "preferences.json");
@@ -170,6 +177,11 @@ export const loadPreferences = async () => {
       prefsObj.allowAddMultipleSuggestions = {};
     }
 
+    // Ensure showLastInsertedValue object exists
+    if (!prefsObj.showLastInsertedValue || typeof prefsObj.showLastInsertedValue !== "object") {
+      prefsObj.showLastInsertedValue = {};
+    }
+
     const rows = Array.isArray(prefsObj.userRow)
       ? prefsObj.userRow
       : [prefsObj.userRow];
@@ -186,10 +198,15 @@ export const loadPreferences = async () => {
       if (prefsObj.allowAddMultipleSuggestions[key] === undefined) {
         prefsObj.allowAddMultipleSuggestions[key] = true;
       }
+
+      // Set showLastInsertedValue to false by default for each row if not set
+      if (prefsObj.showLastInsertedValue[key] === undefined) {
+        prefsObj.showLastInsertedValue[key] = false;
+      }
     }
   };
 
-  // Helper to determine if we seeded missing suggestions or allowMultipleSuggestions
+  // Helper to determine if we seeded missing suggestions, allowMultipleSuggestions, or showLastInsertedValue
   const weSeededMissingSuggestions = (updatedPrefs, originalPrefs) => {
     if (!updatedPrefs.suggestions || !originalPrefs || !originalPrefs.suggestions) {
       return false;
@@ -220,6 +237,22 @@ export const loadPreferences = async () => {
       const originalAllowKeys = Object.keys(originalPrefs.allowAddMultipleSuggestions);
       for (const key of updatedAllowKeys) {
         if (!originalAllowKeys.includes(key)) {
+          return true;
+        }
+      }
+    }
+
+    // Check if showLastInsertedValue was added
+    if (updatedPrefs.showLastInsertedValue && typeof updatedPrefs.showLastInsertedValue === "object") {
+      // If original didn't have showLastInsertedValue, we added it
+      if (!originalPrefs.showLastInsertedValue || typeof originalPrefs.showLastInsertedValue !== "object") {
+        return true;
+      }
+      // Check if any new keys were added to showLastInsertedValue
+      const updatedShowKeys = Object.keys(updatedPrefs.showLastInsertedValue);
+      const originalShowKeys = Object.keys(originalPrefs.showLastInsertedValue);
+      for (const key of updatedShowKeys) {
+        if (!originalShowKeys.includes(key)) {
           return true;
         }
       }

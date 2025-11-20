@@ -135,9 +135,35 @@ Edit `preferences.json` to change settings:
     "9": ["present", "absent", "leave"],
     "10": ["present", "sick", "WFH"],
     "11": ["present", "on vacation"]
+  },
+  "allowAddMultipleSuggestions": {
+    "9": true,
+    "10": true,
+    "11": false
+  },
+  "showLastInsertedValue": {
+    "9": true,
+    "10": true,
+    "11": false
+  },
+  "lastInsertedValues": {
+    "9": "present",
+    "10": "working from home",
+    "11": "on vacation"
   }
 }
 ```
+
+**Available preference options:**
+- `userName`: Your name for welcome messages
+- `userRow`: Row number(s) to write data to (single number or array)
+- `spreadsheetId`: Your Google Sheets ID from the URL
+- `sheetName`: The sheet/tab name to write into
+- `startColumn`: Column letter for day 1 (e.g., "A", "C")
+- `suggestions`: Custom suggestions for each row (object with row number as key)
+- `allowAddMultipleSuggestions`: Enable/disable adding multiple values per row (default: `true`)
+- `showLastInsertedValue`: Enable/disable showing last inserted value prompt (default: `false`)
+- `lastInsertedValues`: Auto-saved last inserted values (managed automatically)
 
 ## Project Structure
 

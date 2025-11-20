@@ -13,7 +13,7 @@ const DEFAULT_SUGGESTIONS = [
 
 // Function to get data input for a row with suggestions.
 // Suggestions are read from preferences.suggestions[row] (persisted) or DEFAULT_SUGGESTIONS as fallback.
-const getRowData = async (row, preferences) => {
+const getRowData = async (row, preferences, lastValue = null) => {
   const key = String(row);
   const suggestions = (preferences.suggestions && Array.isArray(preferences.suggestions[key]))
     ? preferences.suggestions[key]
@@ -22,7 +22,43 @@ const getRowData = async (row, preferences) => {
   // Check if multiple suggestions are allowed for this row (default: true)
   const allowMultiple = preferences.allowAddMultipleSuggestions?.[key] !== false;
 
+  // Check if showing last inserted value is enabled for this row (default: false)
+  const showLastValue = preferences.showLastInsertedValue?.[key] === true;
+
   let currentValue = "";
+
+  // If there's a last inserted value AND the preference is enabled, ask if user wants to reuse it
+  if (showLastValue && lastValue && lastValue.trim() !== "") {
+    const { reuseLastValue } = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "reuseLastValue",
+        message: `Row ${row}: Use last value "${lastValue}"?`,
+        default: true,
+      },
+    ]);
+
+    if (reuseLastValue) {
+      // Pre-fill with last value
+      currentValue = lastValue;
+
+      // Ask if user wants to edit it
+      const { editValue } = await inquirer.prompt([
+        {
+          type: "confirm",
+          name: "editValue",
+          message: "Do you want to edit this value?",
+          default: false,
+        },
+      ]);
+
+      if (!editValue) {
+        // User wants to keep the value as-is
+        return currentValue;
+      }
+      // Otherwise, fall through to the normal flow with currentValue pre-filled
+    }
+  }
 
   // First value is required
   while (true) {
@@ -166,10 +202,14 @@ export const getUserInput = async () => {
     ? preferences.userRow.map((r) => parseInt(r, 10))
     : [parseInt(preferences.userRow, 10)];
 
+  // Get last inserted values if available
+  const lastInsertedValues = preferences.lastInsertedValues || {};
+
   // If there is only one row, ask a single data prompt
   if (prefRows.length === 1) {
     const row = prefRows[0];
-    const value = await getRowData(row, preferences);
+    const lastValue = lastInsertedValues[String(row)];
+    const value = await getRowData(row, preferences, lastValue);
 
     return {
       date: preferences.userRow,
@@ -181,7 +221,8 @@ export const getUserInput = async () => {
   // Multiple rows: get data for each row with suggestions
   const values = [];
   for (const row of prefRows) {
-    const value = await getRowData(row, preferences);
+    const lastValue = lastInsertedValues[String(row)];
+    const value = await getRowData(row, preferences, lastValue);
     values.push(value);
   }
 
