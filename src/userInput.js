@@ -25,7 +25,11 @@ const getRowData = async (row, preferences, lastValue = null) => {
   // Check if showing last inserted value is enabled for this row (default: false)
   const showLastValue = preferences.showLastInsertedValue?.[key] === true;
 
+  // Get auto-fill value if set for this row
+  const autoFillValue = preferences.autoFillValue?.[key];
+
   let currentValue = "";
+  let usedLastValue = false; // Track if user chose to use last value
 
   // If there's a last inserted value AND the preference is enabled, ask if user wants to reuse it
   if (showLastValue && lastValue && lastValue.trim() !== "") {
@@ -41,6 +45,7 @@ const getRowData = async (row, preferences, lastValue = null) => {
     if (reuseLastValue) {
       // Pre-fill with last value
       currentValue = lastValue;
+      usedLastValue = true;
 
       // Ask if user wants to edit it
       const { editValue } = await inquirer.prompt([
@@ -58,6 +63,11 @@ const getRowData = async (row, preferences, lastValue = null) => {
       }
       // Otherwise, fall through to the normal flow with currentValue pre-filled
     }
+  }
+
+  // If user didn't use last value AND auto-fill is set, pre-fill with auto-fill value
+  if (!usedLastValue && autoFillValue && autoFillValue.trim() !== "") {
+    currentValue = autoFillValue;
   }
 
   // First value is required

@@ -26,6 +26,10 @@ const defaultPreferences = {
   // Format: { "9": true, "10": false, ... }
   // Default: false for each row
   showLastInsertedValue: {},
+  // autoFillValue stores the pre-filled value for each row
+  // Format: { "9": "present", "10": "8", ... }
+  // If set, this value will be auto-filled (unless user chooses last inserted value)
+  autoFillValue: {},
 };
 
 const PREFERENCES_PATH = () => join(__dirname, "..", "preferences.json");
@@ -182,6 +186,11 @@ export const loadPreferences = async () => {
       prefsObj.showLastInsertedValue = {};
     }
 
+    // Ensure autoFillValue object exists
+    if (!prefsObj.autoFillValue || typeof prefsObj.autoFillValue !== "object") {
+      prefsObj.autoFillValue = {};
+    }
+
     const rows = Array.isArray(prefsObj.userRow)
       ? prefsObj.userRow
       : [prefsObj.userRow];
@@ -203,6 +212,9 @@ export const loadPreferences = async () => {
       if (prefsObj.showLastInsertedValue[key] === undefined) {
         prefsObj.showLastInsertedValue[key] = false;
       }
+
+      // autoFillValue is optional, don't set a default if not present
+      // Users must explicitly set this in preferences.json
     }
   };
 

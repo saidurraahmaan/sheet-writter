@@ -146,6 +146,10 @@ Edit `preferences.json` to change settings:
     "10": true,
     "11": false
   },
+  "autoFillValue": {
+    "9": "present",
+    "10": "8"
+  },
   "lastInsertedValues": {
     "9": "present",
     "10": "working from home",
@@ -163,7 +167,13 @@ Edit `preferences.json` to change settings:
 - `suggestions`: Custom suggestions for each row (object with row number as key)
 - `allowAddMultipleSuggestions`: Enable/disable adding multiple values per row (default: `true`)
 - `showLastInsertedValue`: Enable/disable showing last inserted value prompt (default: `false`)
+- `autoFillValue`: Pre-fill value for each row (optional, skipped if last value is used)
 - `lastInsertedValues`: Auto-saved last inserted values (managed automatically)
+
+**Priority order for pre-filling values:**
+1. If `showLastInsertedValue` is `true` and user selects "Yes" → use last inserted value
+2. If user doesn't use last value and `autoFillValue` is set → use auto-fill value
+3. Otherwise → start with empty value or suggestion selection
 
 ## Project Structure
 
