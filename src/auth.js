@@ -82,10 +82,33 @@ export const getAuthClient = async () => {
     // Check if we have previously stored a token
     try {
       const token = await readFile(TOKEN_PATH);
-      oAuth2Client.setCredentials(JSON.parse(token));
-      return oAuth2Client;
+      const tokens = JSON.parse(token);
+      oAuth2Client.setCredentials(tokens);
+
+      // Check if token is expired and refresh if needed
+      try {
+        // This will automatically refresh the token if it's expired
+        await oAuth2Client.getAccessToken();
+
+        // If the token was refreshed, save the new token
+        const newTokens = oAuth2Client.credentials;
+        if (newTokens.access_token !== tokens.access_token) {
+          await writeFile(TOKEN_PATH, JSON.stringify(newTokens));
+          console.log("Token refreshed successfully");
+        }
+
+        return oAuth2Client;
+      } catch (refreshError) {
+        // If refresh fails with invalid_grant, delete token and get new one
+        if (refreshError.message && refreshError.message.includes('invalid_grant')) {
+          console.log("\nStored token is invalid. Getting a new token...");
+          await writeFile(TOKEN_PATH, '').catch(() => {}); // Clear invalid token
+          return await getNewToken(oAuth2Client);
+        }
+        throw refreshError;
+      }
     } catch (err) {
-      // No token found, get a new one
+      // No token found or error reading it, get a new one
       return await getNewToken(oAuth2Client);
     }
   } catch (error) {
